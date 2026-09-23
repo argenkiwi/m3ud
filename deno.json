@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "m3ud": "deno run --allow-read --allow-write --allow-net walks/m3ud.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.19",
+    "@std/path": "jsr:@std/path@^1",
+    "@std/streams": "jsr:@std/streams@^1"
+  }
+}
