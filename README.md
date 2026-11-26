@@ -4,7 +4,7 @@
 
 **Download every track in an M3U playlist with a single command.**
 
-[![Deno](https://img.shields.io/badge/Deno-2.8%2B-000?logo=deno&logoColor=white)](https://deno.com)
+[![Bun](https://img.shields.io/badge/Bun-1.4%2B-000?logo=bun&logoColor=white)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Built with Ambler](https://img.shields.io/badge/built%20with-Ambler-25A5DE)](https://github.com/argenkiwi/ambler-ts)
 
@@ -26,14 +26,15 @@ m3ud reads an `.m3u` playlist and downloads all the files it lists into a local 
 
 ### Prerequisites
 
-- [Deno](https://deno.com) 2.8 or later (m3ud uses `import defer`)
+- [Bun](https://bun.sh) 1.4 or later (m3ud uses `import defer`)
 
 ### Usage
 
 ```sh
 git clone https://github.com/argenkiwi/m3ud.git
 cd m3ud
-deno task m3ud path/to/My\ Album.m3u
+bun install
+bun run m3ud path/to/My\ Album.m3u
 ```
 
 m3ud prints the URLs it found, asks for confirmation, and downloads everything:
@@ -74,10 +75,6 @@ Any URL that starts with `https://downloads.khinsider.com/game-soundtracks` is t
 > [!IMPORTANT]
 > khinsider is behind Cloudflare, which sometimes blocks automated requests with a challenge page. When that happens, resolution fails with a `Failed to fetch … 403` error.
 
-### Permissions
-
-The `m3ud` task runs with `--allow-read --allow-write --allow-net`. m3ud needs these to read the playlist, write the downloads and the new playlist, and fetch the files.
-
 ## How it works
 
 m3ud is an [Ambler](https://github.com/argenkiwi/ambler-ts) walk: a small state machine where each step is a node that reads the shared state and returns the next step to run.
@@ -103,8 +100,8 @@ The full behaviour of each step is described in [`specs/m3ud.md`](specs/m3ud.md)
 ### Project structure
 
 ```text
-ambler.ts        # Ambler state-machine runtime
-walks/m3ud.ts    # Wiring: shared state and the node graph
+ambler.ts        # Ambler engine (written by ambler; leave as is)
+walks/m3ud.ts    # Wiring: shared state and the node graph; wiring test in walks/tests/
 nodes/           # One file per step, plus tests in nodes/tests/
 utils/           # Side-effectful helpers (fetching, downloading, prompting)
 specs/m3ud.md    # Specification of the walk
@@ -113,17 +110,14 @@ notes/           # Design notes and gotchas
 
 ## Development
 
-Run the unit tests:
+Install the tools once with `bun install`. The project follows the [Ambler](https://github.com/argenkiwi/ambler-ts) conventions; `ambler help` explains them.
+
+Check the conventions, then type-check (`tsc`), lint (Biome) and run the tests:
 
 ```sh
-deno test nodes/tests/
+ambler check
 ```
 
-Type-check and lint:
-
-```sh
-deno check walks/m3ud.ts
-deno lint
-```
+Or run the steps one at a time with `bun run check`, `bun run lint` and `bun test`.
 
 Each node takes its side effects (file I/O, network, stdin) through an injectable `Utils` object, so the tests mock them all and never touch the disk or the network.

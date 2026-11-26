@@ -1,4 +1,5 @@
-import { NodeFactory } from "../ambler.ts";
+import { writeFile } from "node:fs/promises";
+import type { NodeFactory } from "../ambler.ts";
 
 export interface State {
   m3uFilePath: string;
@@ -13,17 +14,15 @@ export type Utils = {
 };
 
 const defaultUtils: Utils = {
-  writeTextFile: (path, data) => Deno.writeTextFile(path, data),
+  writeTextFile: (path, data) => writeFile(path, data),
   print: (msg) => console.log(msg),
 };
 
-export const factory: NodeFactory<State, Edge, Utils> = (
-  edges,
-  utils = defaultUtils,
-) =>
+export const factory: NodeFactory<State, Edge, Utils> =
+  (edges, utils = defaultUtils) =>
   async (state) => {
     await utils.writeTextFile(state.m3uFilePath, state.urls.join("\n"));
     utils.print(`Saved ${state.m3uFilePath}:`);
-    state.urls.forEach((url) => utils.print(`  ${url}`));
+    for (const url of state.urls) utils.print(`  ${url}`);
     return [edges.onSuccess, state];
   };

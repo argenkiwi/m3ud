@@ -1,4 +1,5 @@
-import { NodeFactory } from "../ambler.ts";
+import { readFile } from "node:fs/promises";
+import type { NodeFactory } from "../ambler.ts";
 import { isKhinsiderUrl } from "../utils/khinsider.ts";
 
 export interface State {
@@ -14,14 +15,12 @@ export type Utils = {
 };
 
 const defaultUtils: Utils = {
-  readTextFile: (path) => Deno.readTextFile(path),
+  readTextFile: (path) => readFile(path, "utf8"),
   print: (msg) => console.log(msg),
 };
 
-export const factory: NodeFactory<State, Edge, Utils> = (
-  edges,
-  utils = defaultUtils,
-) =>
+export const factory: NodeFactory<State, Edge, Utils> =
+  (edges, utils = defaultUtils) =>
   async (state) => {
     const content = await utils.readTextFile(state.m3uFilePath);
     const urls = content
@@ -30,7 +29,7 @@ export const factory: NodeFactory<State, Edge, Utils> = (
       .filter((line) => line && !line.startsWith("#"));
 
     utils.print(`URLs in ${state.m3uFilePath}:`);
-    urls.forEach((url) => utils.print(`  ${url}`));
+    for (const url of urls) utils.print(`  ${url}`);
 
     const next = urls.some(isKhinsiderUrl) ? edges.onResolve : edges.onDownload;
     return [next, { ...state, urls }];

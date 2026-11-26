@@ -1,4 +1,24 @@
-/.agents/skills
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
+# Agent settings are local; the skills link is shared
+/.claude/*
+!/.claude/skills
+
+# Zettelkasten index (derived from notes/)
 /.azk
-/.claude/skills
-/skills-lock.json

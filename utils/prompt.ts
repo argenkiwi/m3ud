@@ -1,33 +1,56 @@
 const YES = ["y", "yes"];
 const NO = ["n", "no"];
-const CHUNK_SIZE = 1024;
 
 // Bytes read past the last newline, kept so piped input isn't lost between prompts.
-let buffered = new Uint8Array(0);
+let buffered = Buffer.alloc(0);
 
-// Reads stdin only while a line is awaited. A background reader (e.g. a stream
-// over Deno.stdin.readable) keeps a read pending and stops the process exiting.
+// Waits for the next chunk of stdin, or null at end of input. stdin is resumed
+// only while a chunk is awaited and paused again afterwards: a stream left
+// flowing keeps the process alive after the last prompt.
+function readChunk(): Promise<Buffer | null> {
+  const stdin = process.stdin;
+  if (stdin.readableEnded) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const done = (chunk: Buffer | null) => {
+      stdin.off("data", onData);
+      stdin.off("end", onEnd);
+      stdin.off("error", onError);
+      stdin.pause();
+      resolve(chunk);
+    };
+    const onData = (chunk: Buffer) => done(chunk);
+    const onEnd = () => done(null);
+    const onError = (err: Error) => {
+      stdin.off("data", onData);
+      stdin.off("end", onEnd);
+      stdin.off("error", onError);
+      stdin.pause();
+      reject(err);
+    };
+    stdin.on("data", onData);
+    stdin.on("end", onEnd);
+    stdin.on("error", onError);
+    stdin.resume();
+  });
+}
+
 async function readLine(question: string): Promise<string | null> {
-  await Deno.stdout.write(new TextEncoder().encode(`${question} `));
+  process.stdout.write(`${question} `);
   while (true) {
     const newline = buffered.indexOf(10);
     if (newline !== -1) {
-      const line = new TextDecoder().decode(buffered.subarray(0, newline));
-      buffered = buffered.slice(newline + 1);
+      const line = buffered.subarray(0, newline).toString("utf8");
+      buffered = buffered.subarray(newline + 1);
       return line.replace(/\r$/, "");
     }
-    const chunk = new Uint8Array(CHUNK_SIZE);
-    const n = await Deno.stdin.read(chunk);
-    if (n === null) {
+    const chunk = await readChunk();
+    if (chunk === null) {
       if (buffered.length === 0) return null;
-      const line = new TextDecoder().decode(buffered);
-      buffered = new Uint8Array(0);
+      const line = buffered.toString("utf8");
+      buffered = Buffer.alloc(0);
       return line;
     }
-    const next = new Uint8Array(buffered.length + n);
-    next.set(buffered);
-    next.set(chunk.subarray(0, n), buffered.length);
-    buffered = next;
+    buffered = Buffer.concat([buffered, chunk]);
   }
 }
 

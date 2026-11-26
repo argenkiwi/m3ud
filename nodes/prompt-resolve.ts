@@ -1,8 +1,7 @@
-import { NodeFactory } from "../ambler.ts";
+import type { NodeFactory } from "../ambler.ts";
 import { confirm } from "../utils/prompt.ts";
 
-// deno-lint-ignore no-empty-interface
-export interface State {}
+export type State = object;
 
 export type Edge = "onYes" | "onNo";
 
@@ -12,11 +11,11 @@ export type Utils = {
 
 const defaultUtils: Utils = { confirm };
 
-export const factory: NodeFactory<State, Edge, Utils> = (
-  edges,
-  utils = defaultUtils,
-) =>
+export const factory: NodeFactory<State, Edge, Utils> =
+  (edges, utils = defaultUtils) =>
   async (state) => {
-    const yes = await utils.confirm("Proceed with download? (y/n)");
+    const yes = await utils.confirm(
+      "Some URLs require resolution. Proceed? (y/n)",
+    );
     return [yes ? edges.onYes : edges.onNo, state];
   };
