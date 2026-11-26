@@ -1,7 +1,7 @@
-import { assertEquals } from "@std/assert";
-import { factory, State, Utils } from "../saveM3uFile.ts";
+import { expect, test } from "bun:test";
+import { factory, type State, type Utils } from "../save-m3u-file.ts";
 
-Deno.test("saveM3uFileNode should write joined URLs and go to success", async () => {
+test("saveM3uFileNode should write joined URLs and go to success", async () => {
   const initialState: State = {
     m3uFilePath: "list.m3u",
     urls: ["https://example.com/a.mp3", "https://example.com/b.mp3"],
@@ -17,10 +17,9 @@ Deno.test("saveM3uFileNode should write joined URLs and go to success", async ()
 
   const result = await factory({ onSuccess: "next" }, utils)(initialState);
 
-  assertEquals(result[0], "next");
-  assertEquals(result[1], initialState);
-  assertEquals(writes, [[
-    "list.m3u",
-    "https://example.com/a.mp3\nhttps://example.com/b.mp3",
-  ]]);
+  expect(result[0]).toEqual("next");
+  expect(result[1]).toEqual(initialState);
+  expect(writes).toEqual([
+    ["list.m3u", "https://example.com/a.mp3\nhttps://example.com/b.mp3"],
+  ]);
 });

@@ -1,7 +1,7 @@
-import { assertEquals } from "@std/assert";
-import { factory, State, Utils } from "../resolveUrls.ts";
+import { expect, test } from "bun:test";
+import { factory, type State, type Utils } from "../resolve-urls.ts";
 
-Deno.test("resolveUrlsNode should resolve only khinsider URLs and keep order", async () => {
+test("resolveUrlsNode should resolve only khinsider URLs and keep order", async () => {
   const k1 = "https://downloads.khinsider.com/game-soundtracks/album/x/01.mp3";
   const k2 = "https://downloads.khinsider.com/game-soundtracks/album/x/02.mp3";
   const initialState: State = {
@@ -17,11 +17,11 @@ Deno.test("resolveUrlsNode should resolve only khinsider URLs and keep order", a
 
   const result = await factory({ onSuccess: "save" }, utils)(initialState);
 
-  assertEquals(result[0], "save");
-  assertEquals(result[1].urls, [
+  expect(result[0]).toEqual("save");
+  expect(result[1].urls).toEqual([
     "https://cdn.example.com/01.mp3",
     "https://example.com/a.mp3",
     "https://cdn.example.com/02.mp3",
   ]);
-  assertEquals(resolved.sort(), [k1, k2]);
+  expect(resolved.sort()).toEqual([k1, k2]);
 });

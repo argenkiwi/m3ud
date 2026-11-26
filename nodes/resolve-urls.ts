@@ -1,4 +1,4 @@
-import { NodeFactory } from "../ambler.ts";
+import type { NodeFactory } from "../ambler.ts";
 import { isKhinsiderUrl, resolveKhinsiderUrl } from "../utils/khinsider.ts";
 
 export interface State {
@@ -13,14 +13,12 @@ export type Utils = {
 
 const defaultUtils: Utils = { resolveKhinsiderUrl };
 
-export const factory: NodeFactory<State, Edge, Utils> = (
-  edges,
-  utils = defaultUtils,
-) =>
+export const factory: NodeFactory<State, Edge, Utils> =
+  (edges, utils = defaultUtils) =>
   async (state) => {
     const urls = await Promise.all(
       state.urls.map((url) =>
-        isKhinsiderUrl(url) ? utils.resolveKhinsiderUrl(url) : url
+        isKhinsiderUrl(url) ? utils.resolveKhinsiderUrl(url) : url,
       ),
     );
     return [edges.onSuccess, { ...state, urls }];

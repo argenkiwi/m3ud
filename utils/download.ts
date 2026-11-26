@@ -1,4 +1,10 @@
-import { join } from "@std/path";
+import { createWriteStream } from "node:fs";
+import { join } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as WebReadableStream } from "node:stream/web";
+
+const FALLBACK_NAME = "download";
 
 /**
  * Downloads a URL into a directory, naming the file after the URL's last path segment.
@@ -9,7 +15,7 @@ import { join } from "@std/path";
  */
 export async function downloadFile(url: string, dir: string): Promise<string> {
   const segment = new URL(url).pathname.split("/").pop() ?? "";
-  const name = decodeURIComponent(segment) || "download";
+  const name = decodeURIComponent(segment) || FALLBACK_NAME;
   const dest = join(dir, name);
 
   const res = await fetch(url);
@@ -18,7 +24,9 @@ export async function downloadFile(url: string, dir: string): Promise<string> {
     throw new Error(`Failed to download ${url}: ${res.status}`);
   }
 
-  const file = await Deno.open(dest, { write: true, create: true, truncate: true });
-  await res.body.pipeTo(file.writable);
+  await pipeline(
+    Readable.fromWeb(res.body as WebReadableStream<Uint8Array>),
+    createWriteStream(dest),
+  );
   return dest;
 }

@@ -1,5 +1,7 @@
-import { basename, dirname, extname, join, resolve, toFileUrl } from "@std/path";
-import { NodeFactory } from "../ambler.ts";
+import { mkdir, rm } from "node:fs/promises";
+import { basename, dirname, extname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import type { NodeFactory } from "../ambler.ts";
 import { downloadFile } from "../utils/download.ts";
 
 export interface State {
@@ -17,16 +19,16 @@ export type Utils = {
 };
 
 const defaultUtils: Utils = {
-  mkdir: (path) => Deno.mkdir(path, { recursive: true }),
+  mkdir: async (path) => {
+    await mkdir(path, { recursive: true });
+  },
   downloadFile,
-  remove: (path) => Deno.remove(path),
+  remove: (path) => rm(path),
   print: (msg) => console.log(msg),
 };
 
-export const factory: NodeFactory<State, Edge, Utils> = (
-  edges,
-  utils = defaultUtils,
-) =>
+export const factory: NodeFactory<State, Edge, Utils> =
+  (edges, utils = defaultUtils) =>
   async (state) => {
     const outputFolder = join(
       dirname(state.m3uFilePath),
@@ -34,16 +36,21 @@ export const factory: NodeFactory<State, Edge, Utils> = (
     );
     await utils.mkdir(outputFolder);
 
-    utils.print(`Downloading ${state.urls.length} file(s) to ${outputFolder}...`);
+    utils.print(
+      `Downloading ${state.urls.length} file(s) to ${outputFolder}...`,
+    );
     const paths = await Promise.all(
       state.urls.map((url) => utils.downloadFile(url, outputFolder)),
     );
 
     await utils.remove(state.m3uFilePath);
 
-    return [edges.onSuccess, {
-      ...state,
-      m3uFilePath: join(outputFolder, "playlist.m3u"),
-      urls: paths.map((path) => toFileUrl(resolve(path)).href),
-    }];
+    return [
+      edges.onSuccess,
+      {
+        ...state,
+        m3uFilePath: join(outputFolder, "playlist.m3u"),
+        urls: paths.map((path) => pathToFileURL(resolve(path)).href),
+      },
+    ];
   };

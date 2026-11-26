@@ -1,53 +1,58 @@
 # Program Specifications
 
-This program downloads audio files specified in an M3U playlist. It takes an M3U file path as a command-line argument, optionally resolves `khinsider.com` URLs to direct download links, then downloads all files to a local folder.
+This program downloads audio files specified in an M3U playlist. It takes an M3U file path as a command-line argument, optionally resolves khinsider URLs to direct download links, then downloads all files to a local folder.
 
-## Shared State
-
-- `m3uFilePath`: The path to the M3U file being processed.
-- `urls`: The list of URLs extracted from or written to the M3U file.
-
-## Steps
+## Nodes
 
 ### Check M3U File
-- This is the initial step of the application.
+- Initial node of the application.
 - Reads the file path from the first command-line argument.
-- If no path is provided, or if the path does not have a `.m3u` extension, or if the file does not exist or is not a regular file, prints an error and terminates.
-- If valid, stores the path in state and proceeds to `READ_M3U_FILE`.
+- If no path is provided, or if the path does not have a `.m3u` extension, or if the file does not exist or is not a regular file, it records and prints the error, then terminates; the program exits with status 1.
+- If valid, it stores the path in state and transitions to `READ_M3U_FILE`.
 
 ### Read M3U File
-- Reads the M3U file at `state.m3uFilePath`.
+- Reads the M3U file at the stored path.
 - Parses each line, ignoring empty lines and comment lines (starting with `#`).
 - Stores the extracted URLs in state and prints them.
-- If any URL starts with `https://downloads.khinsider.com/game-soundtracks`, proceeds to `PROMPT_RESOLVE`.
-- Otherwise, proceeds to `PROMPT_DOWNLOAD`.
+- If any URL starts with `https://downloads.khinsider.com/game-soundtracks`, it transitions to `PROMPT_RESOLVE`.
+- Otherwise, it transitions to `PROMPT_DOWNLOAD`.
 
 ### Prompt Resolve
 - Displays: `Some URLs require resolution. Proceed? (y/n)`.
-- Loops until the user enters `y`/`yes` or `n`/`no`.
-- If `y`/`yes`, proceeds to `RESOLVE_URLS`.
-- If `n`/`no`, terminates.
+- Asks again until the user enters `y`/`yes` or `n`/`no`; end of input counts as `n`.
+- If `y`/`yes`, it transitions to `RESOLVE_URLS`.
+- If `n`/`no`, it terminates.
 
 ### Resolve URLs
-- For each URL in state: if it is a khinsider URL, calls `resolveKhinsiderUrl` to obtain the direct download link; otherwise keeps it as-is.
+- Replaces each khinsider URL with the direct download link found on its track page; other URLs are kept as they are.
 - All resolutions run in parallel.
-- Updates state with the resolved URLs and proceeds to `SAVE_M3U_FILE`.
+- Stores the resolved URLs in state and transitions to `SAVE_M3U_FILE`.
 
 ### Save M3U File
-- Joins `state.urls` with newlines and overwrites `state.m3uFilePath`.
-- Prints the saved file path and the current URL list.
-- Proceeds to `onSuccess`, which is either `PROMPT_DOWNLOAD` (after resolve) or terminates (after download).
-- Because the two uses have different edges, the same node is wired under two IDs: `SAVE_M3U_FILE` (→ `PROMPT_DOWNLOAD`) and `SAVE_LOCAL_M3U_FILE` (→ terminate).
+- Overwrites the original playlist with the resolved URLs, one per line.
+- Prints the saved file path and the URL list.
+- Transitions to `PROMPT_DOWNLOAD`.
 
 ### Prompt Download
 - Displays: `Proceed with download? (y/n)`.
-- Loops until the user enters `y`/`yes` or `n`/`no`.
-- If `y`/`yes`, proceeds to `DOWNLOAD_FILES`.
-- If `n`/`no`, terminates.
+- Asks again until the user enters `y`/`yes` or `n`/`no`; end of input counts as `n`.
+- If `y`/`yes`, it transitions to `DOWNLOAD_FILES`.
+- If `n`/`no`, it terminates.
 
 ### Download Files
-- Derives the output folder name from the M3U filename (without extension).
-- Downloads all URLs in `state.urls` to the output folder in parallel.
-- Removes the original M3U file.
-- Updates state with `m3uFilePath` set to `<outputFolder>/playlist.m3u` and `urls` replaced with `file://` URIs of the downloaded files.
-- Proceeds to `SAVE_LOCAL_M3U_FILE`, which saves the local playlist and then terminates.
+- Creates an output folder next to the playlist, named after the playlist without its extension.
+- Downloads all URLs into the output folder in parallel.
+- Removes the original playlist.
+- Points the stored path at `<output folder>/playlist.m3u` and replaces the URLs with `file://` URIs of the downloaded files.
+- Transitions to `SAVE_LOCAL_M3U_FILE`.
+
+### Save Local M3U File
+- The same step as Save M3U File, writing the local playlist of downloaded files.
+- Prints the saved file path and the URL list, then terminates.
+
+## Shared State
+
+The shared state consists of:
+- `m3uFilePath`: The path to the M3U file being processed.
+- `urls`: The list of URLs extracted from or written to the M3U file.
+- `error`: Why the program stopped, if it stopped because the playlist argument was invalid; empty otherwise.
